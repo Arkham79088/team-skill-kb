@@ -107,9 +107,9 @@ const SubmitPage = () => {
               <Select placeholder="选择需求类型">
                 <Option value="web-backend">Web 后台功能</Option>
                 <Option value="mobile-app">移动应用</Option>
-                <Option value="data-analysis">数据分析</option>
-                <Option value="automation">自动化流程</option>
-                <Option value="content-generation">内容生成</option>
+                <Option value="data-analysis">数据分析</Option>
+                <Option value="automation">自动化流程</Option>
+                <Option value="content-generation">内容生成</Option>
                 <Option value="other">其他</Option>
               </Select>
             </Form.Item>
