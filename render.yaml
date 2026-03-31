@@ -1,0 +1,50 @@
+services:
+  # 后端 API 服务
+  - type: web
+    name: team-skill-kb-api
+    env: python
+    region: singapore
+    plan: free
+    buildCommand: "pip install -r backend/requirements.txt"
+    startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.6
+      - key: DATABASE_URL
+        fromDatabase:
+          name: team-skill-db
+          property: connectionString
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://team-skill-kb.onrender.com
+      - key: DEBUG
+        value: false
+    healthCheckPath: /api/health
+    autoDeploy: true
+
+  # 前端应用（作为静态站点）
+  - type: web
+    name: team-skill-kb-frontend
+    env: node
+    region: singapore
+    plan: free
+    buildCommand: "cd frontend && npm install && npm run build"
+    staticPublishPath: ./frontend/dist
+    envVars:
+      - key: NODE_VERSION
+        value: 18.x
+      - key: VITE_API_BASE_URL
+        fromService:
+          name: team-skill-kb-api
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
+
+databases:
+  - name: team-skill-db
+    databaseName: team_skill_kb
+    user: team_skill_user
+    plan: free
+    region: singapore

@@ -1,0 +1,109 @@
+{
+  "cases": [
+    {
+      "title": "邮件营销任务",
+      "date": "2026-03-27",
+      "requirement_type": "Web 后台功能",
+      "gap_categories": [
+        "understanding-gap",
+        "logic-gap",
+        "abstraction-gap",
+        "structure-gap",
+        "prototype-gap",
+        "validation-gap",
+        "conversation-gap"
+      ],
+      "misunderstanding": "将「内容管理」等同于「CMS 发布管理」，自动引入不必要的发布状态机；将数据字段按 UI 使用时机而非数据归属来分配层级",
+      "missing_logic": "批量清洗的前置过滤（跳过无邮箱记录）和缓存复用（跳过已验证记录）两条优化分支",
+      "too_vague": "批量清洗流程描述只有主路径，研发无法判断是否需要实现优化分支",
+      "should_ask": "①保存模板后是否立即可用？②邮件主题是属于模板还是每次任务单独配置？③批量清洗是否需要缓存历史验证结果？",
+      "should_check": "删除 HTML 元素后全局检查 JS 引用；表单字段完整性检查（是否有必填字段遗漏）",
+      "lessons": "内容管理类需求不能默认引入发布生命周期；多层级实体关系中字段归属必须按数据实体而非 UI 时机划分；涉及外部 API 的批量流程必须显式描述前置过滤和缓存复用分支\n\n---",
+      "folder_name": "2026-03-27-邮件营销任务"
+    }
+  ],
+  "rules": [
+    {
+      "rule_id": "R-001",
+      "title": "内容管理先问生命周期",
+      "categories": [
+        "conversation-gap"
+      ],
+      "problem_description": "需求描述「模板库管理」时，AI 未追问直接引入草稿/发布三状态生命周期，用户实际只需保存即可用",
+      "root_cause": "AI 对「内容管理」有固化的 CMS 发布模式联想，将通用内容管理与 CMS 发布管理混同，未识别出这是需要追问的设计决策点",
+      "improvement_rule": "凡需求涉及「模板」「内容库」「素材管理」等词时，在需求拆解阶段必须追问：「保存后是否立即可用？还是需要审核或发布步骤？」确认后再设计状态模型，不得默认引入发布生命周期",
+      "applicable_scenarios": "所有涉及内容/模板/素材管理的需求",
+      "is_actionable": false,
+      "is_verifiable": false,
+      "is_transferable": false,
+      "has_root_cause": false,
+      "source_case_ids": "2026-03-27-邮件营销任务"
+    },
+    {
+      "rule_id": "R-002",
+      "title": "数据实体字段不跨层分散",
+      "categories": [
+        "understanding-gap"
+      ],
+      "problem_description": "AI 将「邮件主题」字段放在任务级配置表单，而非模板实体的编辑表单，理由是「发送时才用到」",
+      "root_cause": "AI 以 UI 使用时机而非数据归属来组织字段，导致同一实体的字段被拆散在不同层级",
+      "improvement_rule": "设计表单结构时，字段归属必须以数据实体为准，而非 UI 使用时机。属于模板实体的字段（如名称、主题、正文）统一在模板编辑表单中管理，不因「任务发送时才填写」而移至任务层",
+      "applicable_scenarios": "涉及多层级实体关系的需求（如模板-任务、商品-订单等）",
+      "is_actionable": false,
+      "is_verifiable": false,
+      "is_transferable": false,
+      "has_root_cause": false,
+      "source_case_ids": "2026-03-27-邮件营销任务"
+    },
+    {
+      "rule_id": "R-003",
+      "title": "批量流程必须覆盖前置过滤和缓存复用",
+      "categories": [
+        "logic-gap"
+      ],
+      "problem_description": "设计「批量邮箱清洗」流程时只描述主路径（调用验证 API），遗漏「无邮箱记录直接跳过」和「历史已验证结果缓存复用」两条关键优化分支",
+      "root_cause": "AI 默认只描述 Happy Path，对涉及外部 API 调用的批量操作缺乏成本意识，未主动考虑前置过滤和缓存机制",
+      "improvement_rule": "凡需求涉及调用外部 API 的批量处理流程，PRD 中必须显式描述两条优化分支：①前置过滤（无效/空数据直接跳过，不调用 API）；②缓存复用（已处理过的数据直接取历史结果）。若业务方未提及，主动追问是否需要",
+      "applicable_scenarios": "所有涉及外部 API 批量调用的需求（短信/邮件验证、数据清洗、第三方查询等）",
+      "is_actionable": false,
+      "is_verifiable": false,
+      "is_transferable": false,
+      "has_root_cause": false,
+      "source_case_ids": "2026-03-27-邮件营销任务"
+    },
+    {
+      "rule_id": "R-004",
+      "title": "删除 HTML 元素后必须清理 JS 引用",
+      "categories": [
+        "prototype-gap"
+      ],
+      "problem_description": "原型中删除了带 id 的 HTML 元素后，未同步清理 JS 中对该 id 的引用，导致原型运行时报错崩溃",
+      "root_cause": "AI 修改 HTML 结构时只关注视觉层，未系统检查 JS 中的 DOM 绑定，HTML 与 JS 耦合未被识别为需要同步维护的关系",
+      "improvement_rule": "在原型中删除或重命名任何带 id/class 的 HTML 元素后，必须全局搜索 JS 代码中对该 id/class 的所有引用（getElementById、querySelector、事件绑定等），逐一清理或更新，确保无悬空引用",
+      "applicable_scenarios": "所有 HTML 原型的修改操作，尤其是删除或重命名 DOM 元素时",
+      "is_actionable": false,
+      "is_verifiable": false,
+      "is_transferable": false,
+      "has_root_cause": false,
+      "source_case_ids": "2026-03-27-邮件营销任务"
+    }
+  ],
+  "anti_patterns": [
+    {
+      "ap_id": "AP-001",
+      "title": "",
+      "wrong_behavior": "需求中出现「内容管理」「模板库」等词时，AI 自动引入草稿/审核/发布三状态生命周期",
+      "consequences": "产品实际只需要「保存即可用」，AI 设计的发布流程造成不必要的复杂度，用户需大量返工删除",
+      "correct_approach": "遇到内容管理类需求，必须先追问「保存后是否立即生效？还是需要审核/发布流程？」，不得默认引入发布状态",
+      "source_case_ids": "2026-03-27-邮件营销任务"
+    },
+    {
+      "ap_id": "AP-002",
+      "title": "",
+      "wrong_behavior": "将同一数据实体的字段按「使用时机」分散在不同表单层级（如把模板的「邮件主题」放在任务级配置而非模板实体本身）",
+      "consequences": "数据归属混乱，研发理解困难，用户编辑路径不一致",
+      "correct_approach": "字段应按数据归属而非 UI 时机组织——属于模板的字段就在模板表单里编辑，不因为「发送时才用到」就移到任务层",
+      "source_case_ids": "2026-03-27-邮件营销任务"
+    }
+  ]
+}
