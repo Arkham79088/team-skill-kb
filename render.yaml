@@ -25,11 +25,9 @@ services:
     healthCheckPath: /api/health
     autoDeploy: true
 
-  # 前端应用（作为静态站点）
-  - type: web
+  # 前端静态站点（关键：type 必须是 static，不能是 web）
+  - type: static
     name: team-skill-kb-frontend
-    env: static
-    plan: free
     buildCommand: "cd frontend && npm install && npm run build"
     staticPublishPath: ./frontend/dist
     envVars:
