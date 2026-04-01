@@ -2,8 +2,8 @@
  * API 调用工具 - 封装所有后端接口调用
  */
 
-// API 基础 URL（开发环境使用代理，生产环境使用实际部署地址）
-const API_BASE_URL = '/api';
+// API 基础 URL（从环境变量读取，生产环境使用后端服务域名）
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 /**
  * 通用请求处理函数
