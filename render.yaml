@@ -19,10 +19,10 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ORIGINS
-        value: https://team-skill-kb.onrender.com
+        value: https://team-skill-kb-frontend.onrender.com,https://team-skill-kb.onrender.com
       - key: DEBUG
         value: false
-    healthCheckPath: /api/health
+    healthCheckPath: /health
     autoDeploy: true
 
   # 前端静态站点（Blueprint 兼容写法）
