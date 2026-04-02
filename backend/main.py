@@ -11,8 +11,19 @@ from datetime import datetime
 from database import engine, get_db, Base
 from models import User, Case, Rule, AntiPattern, Adoption, RuleStatus
 
-# 创建数据库表
-Base.metadata.create_all(bind=engine)
+# 创建数据库表（带重试机制）
+import time
+for attempt in range(3):
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("✅ 数据库表创建成功")
+        break
+    except Exception as e:
+        print(f"⚠️  第 {attempt + 1} 次尝试创建数据库表失败：{e}")
+        if attempt < 2:
+            time.sleep(2)
+        else:
+            print("❌ 数据库表创建失败，但服务将继续启动")
 
 app = FastAPI(
     title="团队技能知识库平台",
