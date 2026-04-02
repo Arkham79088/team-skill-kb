@@ -130,7 +130,14 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 @app.get("/users/", response_model=List[UserResponse])
 def list_users(db: Session = Depends(get_db)):
     """获取所有用户列表"""
-    return db.query(User).all()
+    try:
+        users = db.query(User).all()
+        return users
+    except Exception as e:
+        import traceback
+        print(f"❌ list_users error: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"数据库错误：{str(e)}")
 
 
 @app.get("/users/{user_id}", response_model=UserResponse)
