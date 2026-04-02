@@ -35,11 +35,13 @@ const SubmitPage = () => {
       await API.submitCase({
         title: values.title,
         requirement_type: values.requirementType,
-        gap_categories: values.gapCategories,
+        gap_categories: Array.isArray(values.gapCategories) ? values.gapCategories.join(',') : values.gapCategories,
         gap_analysis: values.gapAnalysis,
         six_questions: values.sixQuestions,
         summary: values.summary,
-        rules_extracted: values.rulesExtracted ? values.rulesExtracted.split('\n').map(r => ({ title: r.trim() })) : []
+        rules_extracted: values.rulesExtracted || null,
+        submitter_id: 1,  // 临时使用默认用户 ID
+        is_public: true,
       });
 
       message.success('✅ 案例提交成功！审核后将展示在案例库中');

@@ -24,6 +24,13 @@ async function request(endpoint, options = {}) {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      // 422 错误时，详细展示验证失败字段
+      if (response.status === 422 && errorData.detail) {
+        const errors = Array.isArray(errorData.detail) 
+          ? errorData.detail.map(e => `${e.loc.join('.')}: ${e.msg}`).join('; ')
+          : JSON.stringify(errorData.detail);
+        throw new Error(`字段校验失败：${errors}`);
+      }
       throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
     }
     

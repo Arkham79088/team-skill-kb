@@ -5,7 +5,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 
 from database import engine, get_db, Base
@@ -49,19 +49,15 @@ class UserResponse(BaseModel):
 
 class CaseCreate(BaseModel):
     title: str
-    date: str
-    requirement_type: Optional[str] = None
-    misunderstanding: Optional[str] = None
-    missing_logic: Optional[str] = None
-    too_vague: Optional[str] = None
-    should_ask: Optional[str] = None
-    should_check: Optional[str] = None
-    lessons: Optional[str] = None
-    gap_categories: Optional[str] = None
-    extracted_rules: Optional[str] = None
-    extracted_anti_patterns: Optional[str] = None
-    submitter_id: int
-    is_public: bool = False
+    requirement_type: str
+    gap_categories: str  # 多个分类用逗号分隔
+    gap_analysis: Optional[str] = Field(default=None)
+    six_questions: Optional[str] = Field(default=None)
+    summary: Optional[str] = Field(default=None)
+    rules_extracted: Optional[str] = Field(default=None)  # 多条规则用换行分隔
+    submitter_id: int = Field(default=1)
+    is_public: bool = Field(default=True)
+    date: Optional[str] = Field(default=None)  # 可选，后端自动生成
 
 
 class CaseResponse(BaseModel):
@@ -151,13 +147,32 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
 @app.post("/cases/", response_model=CaseResponse)
 def create_case(case: CaseCreate, db: Session = Depends(get_db)):
     """提交新案例"""
-    db_case = Case(**case.dict())
+    from datetime import datetime
+    
+    # 将前端数据转换为数据库模型字段
+    case_data = {
+        'title': case.title,
+        'requirement_type': case.requirement_type,
+        'gap_categories': ','.join(case.gap_categories) if isinstance(case.gap_categories, list) else case.gap_categories,
+        'misunderstanding': case.gap_analysis,  # 映射到 misunderstanding 字段
+        'missing_logic': case.six_questions,  # 映射到 missing_logic 字段
+        'lessons': case.summary,
+        'extracted_rules': case.rules_extracted,
+        'submitter_id': case.submitter_id,
+        'is_public': case.is_public,
+        'date': case.date or datetime.now().strftime('%Y-%m-%d'),
+    }
+    
+    db_case = Case(**case_data)
     db.add(db_case)
     db.commit()
     db.refresh(db_case)
     
     # 关联提交者姓名
-    db_case.submitter_name = db.query(User).filter(User.id == case.submitter_id).first().name
+    submitter = db.query(User).filter(User.id == case.submitter_id).first()
+    if submitter:
+        db_case.submitter_name = submitter.name
+    
     return db_case
 
 
