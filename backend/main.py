@@ -65,7 +65,7 @@ class CaseResponse(BaseModel):
     title: str
     date: str
     requirement_type: Optional[str]
-    submitter_name: str
+    submitter_id: int  # 改为返回 submitter_id
     gap_categories: Optional[str]
     created_at: datetime
     
@@ -149,6 +149,11 @@ def create_case(case: CaseCreate, db: Session = Depends(get_db)):
     """提交新案例"""
     from datetime import datetime
     
+    # 验证提交者是否存在
+    submitter = db.query(User).filter(User.id == case.submitter_id).first()
+    if not submitter:
+        raise HTTPException(status_code=400, detail="提交者 ID 不存在")
+    
     # 将前端数据转换为数据库模型字段
     case_data = {
         'title': case.title,
@@ -168,11 +173,6 @@ def create_case(case: CaseCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_case)
     
-    # 关联提交者姓名
-    submitter = db.query(User).filter(User.id == case.submitter_id).first()
-    if submitter:
-        db_case.submitter_name = submitter.name
-    
     return db_case
 
 
@@ -190,11 +190,6 @@ def list_cases(
         query = query.filter(Case.gap_categories.contains(gap_category))
     
     cases = query.order_by(Case.created_at.desc()).offset(skip).limit(limit).all()
-    
-    # 关联提交者姓名
-    for case in cases:
-        case.submitter_name = db.query(User).filter(User.id == case.submitter_id).first().name
-    
     return cases
 
 
@@ -205,7 +200,6 @@ def get_case(case_id: int, db: Session = Depends(get_db)):
     if not case:
         raise HTTPException(status_code=404, detail="案例不存在")
     
-    case.submitter_name = db.query(User).filter(User.id == case.submitter_id).first().name
     return case
 
 
