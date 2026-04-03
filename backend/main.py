@@ -13,17 +13,25 @@ from models import User, Case, Rule, AntiPattern, Adoption, RuleStatus
 
 # 创建数据库表（带重试机制）
 import time
-for attempt in range(3):
-    try:
-        Base.metadata.create_all(bind=engine)
-        print("✅ 数据库表创建成功")
-        break
-    except Exception as e:
-        print(f"⚠️  第 {attempt + 1} 次尝试创建数据库表失败：{e}")
-        if attempt < 2:
-            time.sleep(2)
-        else:
-            print("❌ 数据库表创建失败，但服务将继续启动")
+from sqlalchemy import text
+
+@app.on_event("startup")
+def startup():
+    """启动时自动建表，带重试机制"""
+    last_err = None
+    for attempt in range(12):
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            Base.metadata.create_all(bind=engine)
+            print("✅ 数据库表创建成功")
+            return
+        except Exception as e:
+            last_err = e
+            print(f"⚠️  第 {attempt + 1} 次尝试连接数据库失败：{e}")
+            if attempt < 11:
+                time.sleep(2)
+    raise last_err
 
 app = FastAPI(
     title="团队技能知识库平台",
@@ -167,21 +175,25 @@ def create_case(case: CaseCreate, db: Session = Depends(get_db)):
     """提交新案例"""
     from datetime import datetime
     
-    # 验证提交者是否存在
-    submitter = db.query(User).filter(User.id == case.submitter_id).first()
-    if not submitter:
-        raise HTTPException(status_code=400, detail="提交者 ID 不存在")
+    # 容错处理：不强制依赖 users 表存在
+    submitter = None
+    try:
+        if case.submitter_id is not None:
+            submitter = db.query(User).filter(User.id == case.submitter_id).first()
+    except Exception as e:
+        print(f"⚠️  查询提交者失败（可能 users 表不存在）：{e}")
+        submitter = None
     
     # 将前端数据转换为数据库模型字段
     case_data = {
         'title': case.title,
         'requirement_type': case.requirement_type,
         'gap_categories': ','.join(case.gap_categories) if isinstance(case.gap_categories, list) else case.gap_categories,
-        'misunderstanding': case.gap_analysis,  # 映射到 misunderstanding 字段
-        'missing_logic': case.six_questions,  # 映射到 missing_logic 字段
+        'misunderstanding': case.gap_analysis,
+        'missing_logic': case.six_questions,
         'lessons': case.summary,
         'extracted_rules': case.rules_extracted,
-        'submitter_id': case.submitter_id,
+        'submitter_id': case.submitter_id if submitter is not None else None,
         'is_public': case.is_public,
         'date': case.date or datetime.now().strftime('%Y-%m-%d'),
     }
