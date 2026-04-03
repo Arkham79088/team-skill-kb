@@ -11,7 +11,23 @@ from datetime import datetime
 from database import engine, get_db, Base
 from models import User, Case, Rule, AntiPattern, Adoption, RuleStatus
 
-# 创建数据库表（带重试机制）
+# 创建 FastAPI 应用
+app = FastAPI(
+    title="团队技能知识库平台",
+    description="共享 AI 问题总结与解决方案，支持统计频次和一键采纳",
+    version="1.0.0"
+)
+
+# CORS 配置（允许前端跨域访问）
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 生产环境应该限制具体域名
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 启动时自动建表（带重试机制）
 import time
 from sqlalchemy import text
 
@@ -32,21 +48,6 @@ def startup():
             if attempt < 11:
                 time.sleep(2)
     raise last_err
-
-app = FastAPI(
-    title="团队技能知识库平台",
-    description="共享 AI 问题总结与解决方案，支持统计频次和一键采纳",
-    version="1.0.0"
-)
-
-# CORS 配置（允许前端跨域访问）
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # 生产环境应该限制具体域名
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 # ==================== Pydantic 模型 ====================
